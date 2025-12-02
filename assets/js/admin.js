@@ -1,4 +1,24 @@
 jQuery(document).ready(function($) {
+    // Constants
+    const SEARCH_DEBOUNCE_DELAY = 500; // milliseconds
+    const ALLOWED_PER_PAGE_VALUES = [25, 50, 100]; // Allowed products per page options
+
+    // Helper function to safely get product ID from element
+    function getValidProductId(element) {
+        const productId = parseInt($(element).val(), 10);
+        return isNaN(productId) ? null : productId;
+    }
+
+    // Helper function to safely get per_page value
+    function getValidPerPage(value) {
+        const perPage = parseInt(value, 10);
+        // Validate it's a number and one of the allowed values
+        if (isNaN(perPage) || !ALLOWED_PER_PAGE_VALUES.includes(perPage)) {
+            return ALLOWED_PER_PAGE_VALUES[0]; // Default to first option (25)
+        }
+        return perPage;
+    }
+
     // Handle manual database input toggle
     $('#manual_db').on('change', function() {
         const $wrapper = $('.database-select-container');
@@ -306,33 +326,64 @@ jQuery(document).ready(function($) {
         });
     });
 
-    // Export to Odoo button click handler
-    $('.export-to-odoo').on('click', function() {
-        const exportModal = $('#odoo-export-modal');
+    // Export to Odoo button click handler with pagination support
+    let exportPaginationState = {
+        currentPage: 1,
+        perPage: 25,
+        search: '',
+        selectedProducts: new Set(),
+        totalPages: 1,
+        isLoading: false
+    };
+
+    // Function to load WooCommerce products with pagination
+    function loadWooProducts(resetPage = false) {
+        if (resetPage) {
+            exportPaginationState.currentPage = 1;
+        }
+
+        if (exportPaginationState.isLoading) {
+            return;
+        }
+
+        exportPaginationState.isLoading = true;
         const wooProductsList = $('.woo-products-list');
         const loadingOverlay = $('<div class="loading-overlay"><div class="loading-spinner"></div></div>');
         wooProductsList.append(loadingOverlay);
-        exportModal.show();
-        
-        // Get selected fields
-        const selectedFields = getSelectedExportFields();
-        
-        // Debug log the request data
+
         const requestData = {
             action: 'get_woo_products',
             nonce: odooflow.nonce,
-            fields: selectedFields
+            page: exportPaginationState.currentPage,
+            per_page: exportPaginationState.perPage,
+            search: exportPaginationState.search
         };
-        console.log('Sending request with data:', requestData);
-        
+
+        // Debug logging (can be disabled in production)
+        if (typeof console !== 'undefined' && console.log) {
+            console.log('Loading WooCommerce products with data:', requestData);
+        }
+
         $.ajax({
             url: odooflow.ajax_url,
             type: 'POST',
             data: requestData,
             success: function(response) {
-                console.log('Response:', response);
+                // Debug logging (can be disabled in production)
+                if (typeof console !== 'undefined' && console.log) {
+                    console.log('Products loaded:', response);
+                }
                 if (response.success) {
                     wooProductsList.html(response.data.html);
+                    
+                    // Update pagination state
+                    exportPaginationState.totalPages = response.data.total_pages || 1;
+                    
+                    // Update pagination UI
+                    updateExportPaginationUI(response.data);
+                    
+                    // Restore selected products on current page
+                    restoreProductSelections();
                 } else {
                     const errorMessage = response.data ? response.data.message : 'Unknown error occurred';
                     wooProductsList.html('<div class="notice notice-error"><p>' + errorMessage + '</p></div>');
@@ -351,8 +402,131 @@ jQuery(document).ready(function($) {
             },
             complete: function() {
                 loadingOverlay.remove();
+                exportPaginationState.isLoading = false;
             }
         });
+    }
+
+    // Update pagination UI
+    function updateExportPaginationUI(data) {
+        const paginationWrapper = $('.pagination-wrapper');
+        const currentPageSpan = $('.current-page');
+        const totalPagesSpan = $('.total-pages');
+        const paginationText = $('.pagination-text');
+        const prevButton = $('.pagination-prev');
+        const nextButton = $('.pagination-next');
+
+        // Update page numbers
+        currentPageSpan.text(data.page || 1);
+        totalPagesSpan.text(data.total_pages || 1);
+
+        // Update pagination info text
+        const start = ((data.page - 1) * data.per_page) + 1;
+        const end = Math.min(data.page * data.per_page, data.total);
+        paginationText.text('Showing ' + start + ' to ' + end + ' of ' + data.total + ' products');
+
+        // Show/hide pagination controls
+        if (data.total_pages > 1) {
+            paginationWrapper.show();
+        } else {
+            paginationWrapper.hide();
+        }
+
+        // Enable/disable prev/next buttons
+        prevButton.prop('disabled', data.page <= 1);
+        nextButton.prop('disabled', data.page >= data.total_pages);
+    }
+
+    // Restore product selections
+    function restoreProductSelections() {
+        exportPaginationState.selectedProducts.forEach(function(productId) {
+            $('#product-' + productId).prop('checked', true);
+        });
+    }
+
+    // Save current page selections
+    function saveCurrentPageSelections() {
+        $('input[name="export_products[]"]').each(function() {
+            const productId = getValidProductId(this);
+            if (productId === null) return;
+            
+            if ($(this).is(':checked')) {
+                exportPaginationState.selectedProducts.add(productId);
+            } else {
+                exportPaginationState.selectedProducts.delete(productId);
+            }
+        });
+    }
+
+    // Export to Odoo button click handler
+    $('.export-to-odoo').on('click', function() {
+        const exportModal = $('#odoo-export-modal');
+        
+        // Reset pagination state
+        exportPaginationState = {
+            currentPage: 1,
+            perPage: 25,
+            search: '',
+            selectedProducts: new Set(),
+            totalPages: 1,
+            isLoading: false
+        };
+
+        // Reset search and per_page inputs
+        $('#woo-products-search').val('');
+        $('#woo-products-per-page').val('25');
+
+        exportModal.show();
+        loadWooProducts(true);
+    });
+
+    // Pagination prev button
+    $(document).on('click', '.pagination-prev', function() {
+        if (exportPaginationState.currentPage > 1) {
+            saveCurrentPageSelections();
+            exportPaginationState.currentPage--;
+            loadWooProducts();
+        }
+    });
+
+    // Pagination next button
+    $(document).on('click', '.pagination-next', function() {
+        if (exportPaginationState.currentPage < exportPaginationState.totalPages) {
+            saveCurrentPageSelections();
+            exportPaginationState.currentPage++;
+            loadWooProducts();
+        }
+    });
+
+    // Per page selector change
+    $(document).on('change', '#woo-products-per-page', function() {
+        saveCurrentPageSelections();
+        exportPaginationState.perPage = getValidPerPage($(this).val());
+        loadWooProducts(true);
+    });
+
+    // Search input with debouncing
+    let searchTimeout;
+    $(document).on('input', '#woo-products-search', function() {
+        const searchValue = $(this).val();
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            saveCurrentPageSelections();
+            exportPaginationState.search = searchValue;
+            loadWooProducts(true);
+        }, SEARCH_DEBOUNCE_DELAY);
+    });
+
+    // Track checkbox changes to update selection state
+    $(document).on('change', 'input[name="export_products[]"]', function() {
+        const productId = getValidProductId(this);
+        if (productId === null) return;
+        
+        if ($(this).is(':checked')) {
+            exportPaginationState.selectedProducts.add(productId);
+        } else {
+            exportPaginationState.selectedProducts.delete(productId);
+        }
     });
 
     // Helper function to get selected export fields
@@ -388,24 +562,52 @@ jQuery(document).ready(function($) {
     
     // WooCommerce product selection handlers
     $(document).on('click', '#select-all-woo-products', function() {
-        $('input[name="export_products[]"]').prop('checked', this.checked);
+        const isChecked = $(this).is(':checked');
+        $('input[name="export_products[]"]').prop('checked', isChecked);
+        // Update selection state
+        $('input[name="export_products[]"]').each(function() {
+            const productId = getValidProductId(this);
+            if (productId === null) return;
+            
+            if (isChecked) {
+                exportPaginationState.selectedProducts.add(productId);
+            } else {
+                exportPaginationState.selectedProducts.delete(productId);
+            }
+        });
     });
     
     $('.select-all-woo-products').on('click', function() {
         $('input[name="export_products[]"]').prop('checked', true);
         $('#select-all-woo-products').prop('checked', true);
+        // Update selection state
+        $('input[name="export_products[]"]').each(function() {
+            const productId = getValidProductId(this);
+            if (productId === null) return;
+            
+            exportPaginationState.selectedProducts.add(productId);
+        });
     });
     
     $('.deselect-all-woo-products').on('click', function() {
         $('input[name="export_products[]"]').prop('checked', false);
         $('#select-all-woo-products').prop('checked', false);
+        // Update selection state
+        $('input[name="export_products[]"]').each(function() {
+            const productId = getValidProductId(this);
+            if (productId === null) return;
+            
+            exportPaginationState.selectedProducts.delete(productId);
+        });
     });
     
     // Export selected products
     $('.export-selected-products').on('click', function() {
-        const selectedProducts = $('input[name="export_products[]"]:checked').map(function() {
-            return parseInt(this.value, 10);
-        }).get();
+        // Save current page selections before exporting
+        saveCurrentPageSelections();
+        
+        // Convert Set to Array
+        const selectedProducts = Array.from(exportPaginationState.selectedProducts);
         
         if (selectedProducts.length === 0) {
             alert('Please select at least one product to export');
@@ -444,6 +646,8 @@ jQuery(document).ready(function($) {
                     }
                     alert(message);
                     $('#odoo-export-modal').hide();
+                    // Reset pagination state after export
+                    exportPaginationState.selectedProducts.clear();
                 } else {
                     const errorMessage = response.data ? response.data.message : 'Unknown error occurred';
                     alert('Error: ' + errorMessage);
