@@ -53,7 +53,10 @@ For a detailed walkthrough, refer to the [YouTube Guide](#resources).
 
 ### Product Synchronization
 - Import products from Odoo to WooCommerce
-- Export WooCommerce products to Odoo
+- Export WooCommerce products to Odoo with pagination support
+  - **NEW**: Browse through products with pagination (25/50/100 per page)
+  - **NEW**: Search products by name or SKU
+  - **NEW**: Persistent selection across pages
 - Sync product details including name, price, stock, and descriptions
 - Handle product categories and variations
 - Manage product images and media
@@ -91,6 +94,14 @@ You can trigger synchronization manually or set up automated sync through WordPr
 4. Order synchronization dashboard
 
 ## Changelog
+
+### 1.0.3 (In Development)
+- **New Feature**: Added pagination support to product export modal
+  - Browse through all WooCommerce products with configurable page size (25, 50, or 100 products)
+  - Search products by name or SKU
+  - Selection persistence across pages - selected products remain checked when navigating
+  - Improved performance for stores with large product catalogs
+  - Removed 100-product limit for exports
 
 ### 1.0.0
 - Initial release
