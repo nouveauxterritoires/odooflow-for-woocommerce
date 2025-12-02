@@ -1,4 +1,7 @@
 jQuery(document).ready(function($) {
+    // Constants
+    const SEARCH_DEBOUNCE_DELAY = 500; // milliseconds
+
     // Handle manual database input toggle
     $('#manual_db').on('change', function() {
         const $wrapper = $('.database-select-container');
@@ -486,12 +489,14 @@ jQuery(document).ready(function($) {
             saveCurrentPageSelections();
             exportPaginationState.search = searchValue;
             loadWooProducts(true);
-        }, 500);
+        }, SEARCH_DEBOUNCE_DELAY);
     });
 
     // Track checkbox changes to update selection state
     $(document).on('change', 'input[name="export_products[]"]', function() {
         const productId = parseInt($(this).val(), 10);
+        if (isNaN(productId)) return;
+        
         if ($(this).is(':checked')) {
             exportPaginationState.selectedProducts.add(productId);
         } else {
@@ -537,6 +542,8 @@ jQuery(document).ready(function($) {
         // Update selection state
         $('input[name="export_products[]"]').each(function() {
             const productId = parseInt($(this).val(), 10);
+            if (isNaN(productId)) return;
+            
             if (isChecked) {
                 exportPaginationState.selectedProducts.add(productId);
             } else {
@@ -551,6 +558,8 @@ jQuery(document).ready(function($) {
         // Update selection state
         $('input[name="export_products[]"]').each(function() {
             const productId = parseInt($(this).val(), 10);
+            if (isNaN(productId)) return;
+            
             exportPaginationState.selectedProducts.add(productId);
         });
     });
@@ -561,6 +570,8 @@ jQuery(document).ready(function($) {
         // Update selection state
         $('input[name="export_products[]"]').each(function() {
             const productId = parseInt($(this).val(), 10);
+            if (isNaN(productId)) return;
+            
             exportPaginationState.selectedProducts.delete(productId);
         });
     });

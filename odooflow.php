@@ -1782,18 +1782,33 @@ class OdooFlow {
         // Get products using wc_get_products
         $product_ids = wc_get_products($args);
 
-        // Get total count for pagination
-        $total_args = array(
+        // Get total count for pagination using a more efficient method
+        $count_args = array(
             'status' => 'publish',
             'return' => 'ids',
             'limit' => -1,
         );
 
         if (!empty($search)) {
-            $total_args['s'] = $search;
+            $count_args['s'] = $search;
         }
 
-        $total_products = count(wc_get_products($total_args));
+        // Use WP_Query for more efficient counting
+        $count_query_args = array(
+            'post_type' => 'product',
+            'post_status' => 'publish',
+            'fields' => 'ids',
+            'posts_per_page' => -1,
+        );
+
+        if (!empty($search)) {
+            $count_query_args['s'] = $search;
+        }
+
+        $count_query = new WP_Query($count_query_args);
+        $total_products = $count_query->found_posts;
+        wp_reset_postdata();
+
         $total_pages = ceil($total_products / $per_page);
 
         // Build products array
