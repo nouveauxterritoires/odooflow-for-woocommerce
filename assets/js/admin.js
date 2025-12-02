@@ -8,6 +8,16 @@ jQuery(document).ready(function($) {
         return isNaN(productId) ? null : productId;
     }
 
+    // Helper function to safely get per_page value
+    function getValidPerPage(value) {
+        const perPage = parseInt(value, 10);
+        // Validate it's a number and one of the allowed values
+        if (isNaN(perPage) || ![25, 50, 100].includes(perPage)) {
+            return 25; // Default to 25
+        }
+        return perPage;
+    }
+
     // Handle manual database input toggle
     $('#manual_db').on('change', function() {
         const $wrapper = $('.database-select-container');
@@ -484,7 +494,7 @@ jQuery(document).ready(function($) {
     // Per page selector change
     $(document).on('change', '#woo-products-per-page', function() {
         saveCurrentPageSelections();
-        exportPaginationState.perPage = parseInt($(this).val(), 10);
+        exportPaginationState.perPage = getValidPerPage($(this).val());
         loadWooProducts(true);
     });
 

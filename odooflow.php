@@ -1784,11 +1784,13 @@ class OdooFlow {
 
         // Get total count for pagination using a more efficient method
         // Use WP_Query with found_posts for better performance
+        // We set posts_per_page to 1 to minimize data retrieval while 
+        // WordPress still calculates the total count (no_found_rows => false)
         $count_query_args = array(
             'post_type' => 'product',
             'post_status' => 'publish',
             'fields' => 'ids',
-            'posts_per_page' => 1, // Only need to count, not retrieve all
+            'posts_per_page' => 1, // Minimize data retrieval
             'no_found_rows' => false, // Enable found_posts calculation
         );
 
@@ -1800,7 +1802,7 @@ class OdooFlow {
         $total_products = $count_query->found_posts;
         wp_reset_postdata();
 
-        $total_pages = ceil($total_products / $per_page);
+        $total_pages = $per_page > 0 ? ceil($total_products / $per_page) : 1;
 
         // Build products array
         $products = array();
