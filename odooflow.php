@@ -1029,9 +1029,41 @@ class OdooFlow {
                     </div>
                     
                     <div class="products-section">
-                        <h3><?php esc_html_e('WooCommerce Products', 'odooflow'); ?></h3>
+                        <div class="products-header">
+                            <h3><?php esc_html_e('WooCommerce Products', 'odooflow'); ?></h3>
+                            <div class="products-controls">
+                                <div class="search-wrapper">
+                                    <label for="woo-products-search"><?php esc_html_e('Search:', 'odooflow'); ?></label>
+                                    <input type="text" id="woo-products-search" class="regular-text" placeholder="<?php esc_attr_e('Search products...', 'odooflow'); ?>">
+                                </div>
+                                <div class="per-page-wrapper">
+                                    <label for="woo-products-per-page"><?php esc_html_e('Show:', 'odooflow'); ?></label>
+                                    <select id="woo-products-per-page" class="per-page-select">
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                         <div class="woo-products-list">
                             <!-- Products will be loaded here -->
+                        </div>
+                        <div class="pagination-wrapper" style="display: none;">
+                            <div class="pagination-info">
+                                <span class="pagination-text"></span>
+                            </div>
+                            <div class="pagination-controls">
+                                <button type="button" class="button pagination-prev" disabled>
+                                    <?php esc_html_e('Previous', 'odooflow'); ?>
+                                </button>
+                                <span class="pagination-current">
+                                    <span class="current-page">1</span> / <span class="total-pages">1</span>
+                                </span>
+                                <button type="button" class="button pagination-next" disabled>
+                                    <?php esc_html_e('Next', 'odooflow'); ?>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1715,32 +1747,68 @@ class OdooFlow {
             return;
         }
 
-        // Query WooCommerce products
+        // Check permissions
+        if (!current_user_can('manage_woocommerce')) {
+            wp_send_json_error(array('message' => __('Permission denied.', 'odooflow')));
+            return;
+        }
+
+        // Get pagination parameters
+        $page = isset($_POST['page']) ? absint($_POST['page']) : 1;
+        $per_page = isset($_POST['per_page']) ? absint($_POST['per_page']) : 25;
+        $search = isset($_POST['search']) ? sanitize_text_field(wp_unslash($_POST['search'])) : '';
+
+        // Validate per_page (must be 25, 50, or 100)
+        if (!in_array($per_page, array(25, 50, 100), true)) {
+            $per_page = 25;
+        }
+
+        // Ensure page is at least 1
+        $page = max(1, $page);
+
+        // Build query arguments
         $args = array(
-            'post_type' => 'product',
-            'post_status' => 'publish',
-            'posts_per_page' => 100,
+            'status' => 'publish',
+            'limit' => $per_page,
+            'offset' => ($page - 1) * $per_page,
+            'return' => 'ids',
         );
 
-        $products_query = new WP_Query($args);
+        // Add search if provided
+        if (!empty($search)) {
+            $args['s'] = $search;
+        }
+
+        // Get products using wc_get_products
+        $product_ids = wc_get_products($args);
+
+        // Get total count for pagination
+        $total_args = array(
+            'status' => 'publish',
+            'return' => 'ids',
+            'limit' => -1,
+        );
+
+        if (!empty($search)) {
+            $total_args['s'] = $search;
+        }
+
+        $total_products = count(wc_get_products($total_args));
+        $total_pages = ceil($total_products / $per_page);
+
+        // Build products array
         $products = array();
+        foreach ($product_ids as $product_id) {
+            $product = wc_get_product($product_id);
+            if (!$product) continue;
 
-        if ($products_query->have_posts()) {
-            while ($products_query->have_posts()) {
-                $products_query->the_post();
-                $product = wc_get_product(get_the_ID());
-                
-                if (!$product) continue;
-
-                $products[] = array(
-                    'id' => $product->get_id(),
-                    'name' => $product->get_name(),
-                    'sku' => $product->get_sku(),
-                    'price' => $product->get_regular_price(),
-                    'type' => $product->get_type()
-                );
-            }
-            wp_reset_postdata();
+            $products[] = array(
+                'id' => $product->get_id(),
+                'name' => $product->get_name(),
+                'sku' => $product->get_sku(),
+                'price' => $product->get_regular_price(),
+                'type' => $product->get_type()
+            );
         }
 
         // Build the HTML for the products list
@@ -1780,8 +1848,14 @@ class OdooFlow {
 
         $html .= '</tbody></table>';
 
-        error_log('Sending response with HTML table');
-        wp_send_json_success(array('html' => $html));
+        error_log('Sending response with HTML table - Page: ' . $page . ', Total pages: ' . $total_pages);
+        wp_send_json_success(array(
+            'html' => $html,
+            'page' => $page,
+            'per_page' => $per_page,
+            'total' => $total_products,
+            'total_pages' => $total_pages
+        ));
     }
 
     /**

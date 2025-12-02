@@ -287,6 +287,130 @@
     border-bottom: 1px solid #ddd;
 }
 
+.products-header {
+    margin-bottom: 20px;
+}
+
+.products-header h3 {
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.products-controls {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 15px;
+}
+
+.search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 250px;
+}
+
+.search-wrapper label {
+    font-weight: 600;
+    margin: 0;
+}
+
+.search-wrapper input {
+    flex: 1;
+    max-width: 400px;
+}
+
+.per-page-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.per-page-wrapper label {
+    font-weight: 600;
+    margin: 0;
+}
+
+.per-page-select {
+    min-width: 80px;
+}
+
+.pagination-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+.pagination-info {
+    flex: 1;
+}
+
+.pagination-text {
+    font-weight: 500;
+    color: #555;
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pagination-current {
+    font-weight: 600;
+    color: #2271b1;
+    padding: 0 10px;
+}
+
+.pagination-prev,
+.pagination-next {
+    min-width: 100px;
+}
+
+.pagination-prev:disabled,
+.pagination-next:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+@media screen and (max-width: 782px) {
+    .products-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .search-wrapper,
+    .per-page-wrapper {
+        width: 100%;
+    }
+
+    .search-wrapper input {
+        max-width: none;
+    }
+
+    .pagination-wrapper {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+
+    .pagination-info {
+        text-align: center;
+    }
+
+    .pagination-controls {
+        justify-content: center;
+    }
+}
+
 .products-list {
     width: 100%;
     border-collapse: collapse;
