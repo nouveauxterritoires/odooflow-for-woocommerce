@@ -1,6 +1,7 @@
 jQuery(document).ready(function($) {
     // Constants
     const SEARCH_DEBOUNCE_DELAY = 500; // milliseconds
+    const ALLOWED_PER_PAGE_VALUES = [25, 50, 100]; // Allowed products per page options
 
     // Helper function to safely get product ID from element
     function getValidProductId(element) {
@@ -12,8 +13,8 @@ jQuery(document).ready(function($) {
     function getValidPerPage(value) {
         const perPage = parseInt(value, 10);
         // Validate it's a number and one of the allowed values
-        if (isNaN(perPage) || ![25, 50, 100].includes(perPage)) {
-            return 25; // Default to 25
+        if (isNaN(perPage) || !ALLOWED_PER_PAGE_VALUES.includes(perPage)) {
+            return ALLOWED_PER_PAGE_VALUES[0]; // Default to first option (25)
         }
         return perPage;
     }
@@ -358,14 +359,20 @@ jQuery(document).ready(function($) {
             search: exportPaginationState.search
         };
 
-        console.log('Loading WooCommerce products with data:', requestData);
+        // Debug logging (can be disabled in production)
+        if (typeof console !== 'undefined' && console.log) {
+            console.log('Loading WooCommerce products with data:', requestData);
+        }
 
         $.ajax({
             url: odooflow.ajax_url,
             type: 'POST',
             data: requestData,
             success: function(response) {
-                console.log('Products loaded:', response);
+                // Debug logging (can be disabled in production)
+                if (typeof console !== 'undefined' && console.log) {
+                    console.log('Products loaded:', response);
+                }
                 if (response.success) {
                     wooProductsList.html(response.data.html);
                     

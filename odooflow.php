@@ -1782,10 +1782,10 @@ class OdooFlow {
         // Get products using wc_get_products
         $product_ids = wc_get_products($args);
 
-        // Get total count for pagination using a more efficient method
-        // Use WP_Query with found_posts for better performance
+        // Get total count for pagination using a more efficient method.
+        // Use WP_Query with found_posts for better performance.
         // We set posts_per_page to 1 to minimize data retrieval while 
-        // WordPress still calculates the total count (no_found_rows => false)
+        // WordPress still calculates the total count (no_found_rows => false).
         $count_query_args = array(
             'post_type' => 'product',
             'post_status' => 'publish',

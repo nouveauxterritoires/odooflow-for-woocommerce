@@ -381,6 +381,7 @@
     cursor: not-allowed;
 }
 
+/* WordPress admin responsive breakpoint (matches admin menu breakpoint at 782px) */
 @media screen and (max-width: 782px) {
     .products-controls {
         flex-direction: column;
