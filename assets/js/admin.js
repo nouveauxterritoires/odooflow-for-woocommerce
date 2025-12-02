@@ -2,6 +2,12 @@ jQuery(document).ready(function($) {
     // Constants
     const SEARCH_DEBOUNCE_DELAY = 500; // milliseconds
 
+    // Helper function to safely get product ID from element
+    function getValidProductId(element) {
+        const productId = parseInt($(element).val(), 10);
+        return isNaN(productId) ? null : productId;
+    }
+
     // Handle manual database input toggle
     $('#manual_db').on('change', function() {
         const $wrapper = $('.database-select-container');
@@ -424,7 +430,9 @@ jQuery(document).ready(function($) {
     // Save current page selections
     function saveCurrentPageSelections() {
         $('input[name="export_products[]"]').each(function() {
-            const productId = parseInt($(this).val(), 10);
+            const productId = getValidProductId(this);
+            if (productId === null) return;
+            
             if ($(this).is(':checked')) {
                 exportPaginationState.selectedProducts.add(productId);
             } else {
@@ -494,8 +502,8 @@ jQuery(document).ready(function($) {
 
     // Track checkbox changes to update selection state
     $(document).on('change', 'input[name="export_products[]"]', function() {
-        const productId = parseInt($(this).val(), 10);
-        if (isNaN(productId)) return;
+        const productId = getValidProductId(this);
+        if (productId === null) return;
         
         if ($(this).is(':checked')) {
             exportPaginationState.selectedProducts.add(productId);
@@ -541,8 +549,8 @@ jQuery(document).ready(function($) {
         $('input[name="export_products[]"]').prop('checked', isChecked);
         // Update selection state
         $('input[name="export_products[]"]').each(function() {
-            const productId = parseInt($(this).val(), 10);
-            if (isNaN(productId)) return;
+            const productId = getValidProductId(this);
+            if (productId === null) return;
             
             if (isChecked) {
                 exportPaginationState.selectedProducts.add(productId);
@@ -557,8 +565,8 @@ jQuery(document).ready(function($) {
         $('#select-all-woo-products').prop('checked', true);
         // Update selection state
         $('input[name="export_products[]"]').each(function() {
-            const productId = parseInt($(this).val(), 10);
-            if (isNaN(productId)) return;
+            const productId = getValidProductId(this);
+            if (productId === null) return;
             
             exportPaginationState.selectedProducts.add(productId);
         });
@@ -569,8 +577,8 @@ jQuery(document).ready(function($) {
         $('#select-all-woo-products').prop('checked', false);
         // Update selection state
         $('input[name="export_products[]"]').each(function() {
-            const productId = parseInt($(this).val(), 10);
-            if (isNaN(productId)) return;
+            const productId = getValidProductId(this);
+            if (productId === null) return;
             
             exportPaginationState.selectedProducts.delete(productId);
         });

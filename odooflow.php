@@ -1783,22 +1783,13 @@ class OdooFlow {
         $product_ids = wc_get_products($args);
 
         // Get total count for pagination using a more efficient method
-        $count_args = array(
-            'status' => 'publish',
-            'return' => 'ids',
-            'limit' => -1,
-        );
-
-        if (!empty($search)) {
-            $count_args['s'] = $search;
-        }
-
-        // Use WP_Query for more efficient counting
+        // Use WP_Query with found_posts for better performance
         $count_query_args = array(
             'post_type' => 'product',
             'post_status' => 'publish',
             'fields' => 'ids',
-            'posts_per_page' => -1,
+            'posts_per_page' => 1, // Only need to count, not retrieve all
+            'no_found_rows' => false, // Enable found_posts calculation
         );
 
         if (!empty($search)) {
