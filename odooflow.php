@@ -3,7 +3,7 @@
 /**
  * Plugin Name: OdooFlow - Odoo Integration for WooCommerce
  * Description: WooCommerce integration with Odoo
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: boringplugins
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
